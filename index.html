@@ -137,6 +137,11 @@
   .star-btn:hover{opacity:1;transform:scale(1.12);}
   .star-btn:active{transform:scale(.95);}
   .star-btn.fav{color:#ff1493;opacity:1;filter:drop-shadow(0 0 2px rgba(255,20,147,.55));}
+  .fav-btn{color:#808080 !important;background:transparent;border:none;cursor:pointer;flex:none;display:inline-flex;align-items:center;justify-content:center;padding:0;}
+  .fav-btn:disabled{cursor:default;opacity:.4;}
+  .fav-btn:not(:disabled){color:#ff1493 !important;cursor:pointer;}
+  .fav-btn:not(:disabled):hover{opacity:.8;}
+  .fav-btn.active{color:#ff1493 !important;filter:drop-shadow(0 0 3px rgba(255,20,147,.6));}
   .track.dragging{opacity:.5;border:2px dashed var(--accent) !important;}
   .track.drag-over{background:#ffffcc !important;border:2px dotted #000080 !important;}
   @media(max-width:640px){.track{grid-template-columns:30px 1fr 24px 22px 46px;}.t-meta{display:none;}}
@@ -464,6 +469,7 @@
     </div>
     <div class="toolbar" style="padding:0 0 8px 0;gap:8px;">
       <button class="btn btn-primary focusable" id="btnPlayPl" type="button">PLAY FAVORITES</button>
+      <button class="btn focusable" id="btnShufPl" type="button">SHUFFLE FAVORITES</button>
       <button class="btn btn-danger focusable" id="btnClearPl" type="button">CLEAR ALL</button>
     </div>
     <div id="plRoot"></div>
@@ -502,20 +508,34 @@
     <div id="libRoot"></div>
   </div>
 </section>
-<section class="win" style="display:none;" id="bugSection" aria-label="Report a bug">
+<section class="win" style="display:none;" id="bugSection" aria-label="Report a bug or request a feature">
   <div class="win-title">
-    <span>\feedback\report_bug</span>
+    <span>\feedback\report</span>
     <span class="dots"><span class="ctl">_</span><span class="ctl">&#9633;</span><span class="ctl">&times;</span></span>
   </div>
-  <div class="win-body" style="max-width:600px;">
+  <div class="win-body" style="max-width:760px;">
     <div class="lib-head" style="margin-bottom:10px;">
-      <h2>REPORT A BUG</h2>
+      <h2>REPORT A BUG / REQUEST A FEATURE</h2>
     </div>
-    <p style="font-family:var(--f-mono);font-size:12px;margin:0 0 10px;color:#444;">if you found a bug, please report it here. be specific.</p>
-    <textarea id="bugText" class="input" style="width:100%;height:120px;resize:vertical;font-family:var(--f-mono);font-size:13px;display:block;" placeholder="Describe the bug..."></textarea>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary focusable" id="bugBtn" type="button">SUBMIT</button>
-      <span id="bugStatus" style="font-family:var(--f-mono);font-size:12px;font-weight:bold;"></span>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <!-- bug column -->
+      <div style="flex:1 1 280px;min-width:0;">
+        <p style="font-family:var(--f-mono);font-size:12px;margin:0 0 6px;color:#444;">found a bug? be specific about what happened.</p>
+        <textarea id="bugText" class="input" style="width:100%;height:120px;resize:vertical;font-family:var(--f-mono);font-size:13px;display:block;" placeholder="Describe the bug..."></textarea>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary focusable" id="bugBtn" type="button">SUBMIT BUG</button>
+          <span id="bugStatus" style="font-family:var(--f-mono);font-size:12px;font-weight:bold;"></span>
+        </div>
+      </div>
+      <!-- feature column -->
+      <div style="flex:1 1 280px;min-width:0;">
+        <p style="font-family:var(--f-mono);font-size:12px;margin:0 0 6px;color:#444;">got an idea? tell me what you want added or changed.</p>
+        <textarea id="featText" class="input" style="width:100%;height:120px;resize:vertical;font-family:var(--f-mono);font-size:13px;display:block;" placeholder="Describe the feature you want..."></textarea>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary focusable" id="featBtn" type="button">SUBMIT FEATURE</button>
+          <span id="featStatus" style="font-family:var(--f-mono);font-size:12px;font-weight:bold;"></span>
+        </div>
+      </div>
     </div>
     <div style="margin-top:14px;padding-top:10px;border-top:2px solid #808080;font-family:var(--f-mono);font-size:11px;color:#555;">dont spam reports, you will get banned from them for doing so </div>
   </div>
@@ -539,6 +559,9 @@
         <div class="tr-title" id="trTitle">Nothing playing</div>
         <div class="tr-sub" id="trSub">WAITING</div>
       </div>
+      <button class="fav-btn focusable" id="favBtn" type="button" title="Favorite current song (no track playing)" aria-pressed="false" aria-label="Favorite current song" disabled>
+        <span id="favIcon"></span>
+      </button>
     </div>
     <div class="tr-center">
       <div class="tr-controls">
@@ -572,9 +595,6 @@
       </button>
       <button class="ibtn focusable" id="repeatBtn" type="button" title="Repeat (R)" aria-pressed="false" aria-label="Repeat">
         <span id="repeatIcon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></span>
-      </button>
-      <button class="ibtn focusable" id="muteBtn" type="button" title="Mute (M)" aria-label="Mute">
-        <span id="muteIcon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 7a8 8 0 0 1 0 10"/></svg></span>
       </button>
       <a class="ibtn focusable" id="dlBtn" href="#" download title="Download current track (D)" aria-label="Download current track" style="display:none;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -868,6 +888,7 @@ const RAW=[
 ];
 
 function ini(p){return p.split("/").map(s=>encodeURIComponent(s)).join("/");}
+
 function prv(filename){
   let base=filename.replace(/\.(mp3|wav|m4a|flac)$/i,"");
   let ver=null;
@@ -880,13 +901,12 @@ function prv(filename){
   return{title:base||filename,ver};
 }
 
-// seconds -> "m:ss". clamp the weird stuff (NaN, negatives) so the UI never shows garbage like "NaN:NaN".
-function trk(sec){if(!isFinite(sec)||sec<0)sec=0;const m=Math.floor(sec/60);const s=Math.floor(sec%60);return m+":"+String(s).padStart(2,"0");}
-// fallback cover letter when a song has no album art. grab the first alnum char, else "#".
-function rlib(title){const m=title.match(/[A-Za-z0-9]/);return m?m[0].toUpperCase():"#";}
-// basic html escape. anything user-ish (filenames, playlist names) goes through this before innerHTML.
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
+function trk(sec){if(!isFinite(sec)||sec<0)sec=0;const m=Math.floor(sec/60);const s=Math.floor(sec%60);return m+":"+String(s).padStart(2,"0");}
+
+function rlib(title){const m=title.match(/[A-Za-z0-9]/);return m?m[0].toUpperCase():"#";}
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
 const TRACKS=RAW.map(([projKey,path],i)=>{
   const parts=path.split("/");
@@ -894,7 +914,6 @@ const TRACKS=RAW.map(([projKey,path],i)=>{
   const{title,ver}=prv(filename);
   const proj=PROJ_BY_KEY[projKey];
   if(!proj){
-
     console.warn("[vault] track #"+i+" ("+path+") references unknown project key '"+projKey+"' -- skipping project metadata");
   }
   return{id:i,index:i,cat:String(i+1).padStart(3,"0"),title,ver,filename,path,
@@ -917,12 +936,12 @@ const state={
 };
 const audio=document.createElement("audio");audio.preload="metadata";
 const $=id=>document.getElementById(id);
-const elFilters=$("filters"),elLibRoot=$("libRoot"),elLibCount=$("libCount"),elSearch=$("searchInput"),elBtnPlayPl=$("btnPlayPl"),elBtnClearPl=$("btnClearPl"),elTabLib=$("tabLibrary"),elTabPlay=$("tabPlaylist"),elTabBug=$("tabBug"),elBugText=$("bugText"),elbugBtn=$("bugBtn"),elBugStatus=$("bugStatus"),
+const elFilters=$("filters"),elLibRoot=$("libRoot"),elLibCount=$("libCount"),elSearch=$("searchInput"),elBtnPlayPl=$("btnPlayPl"),elBtnShufPl=$("btnShufPl"),elBtnClearPl=$("btnClearPl"),elTabLib=$("tabLibrary"),elTabPlay=$("tabPlaylist"),elTabBug=$("tabBug"),elBugText=$("bugText"),elbugBtn=$("bugBtn"),elBugStatus=$("bugStatus"),elFeatText=$("featText"),elFeatBtn=$("featBtn"),elFeatStatus=$("featStatus"),
 elPlaylistWinTitle=$("playlistWinTitle");
 const elNpTitle=$("npTitle"),elNpSub=$("npSubline"),elNpCover=$("npCover"),elNpInit=$("npInitial"),elNpCat=$("npCat"),elNpYr=$("npYr"),elNpStatus=$("npStatusLabel");
 const elHeroPlay=$("heroPlay"),elHeroPlayIcon=$("heroPlayIcon"),elHeroPlayLabel=$("heroPlayLabel"),elHeroShuffle=$("heroShuffle");
 const elPlayBtn=$("playBtn"),elPlayIcon=$("playIcon"),elPrevBtn=$("prevBtn"),elNextBtn=$("nextBtn"),elBackBtn=$("backBtn"),elFwdBtn=$("fwdBtn");
-const elShuffleBtn=$("shuffleBtn"),elRepeatBtn=$("repeatBtn"),elRepeatIcon=$("repeatIcon"),elMuteBtn=$("muteBtn"),elMuteIcon=$("muteIcon"),elDlBtn=$("dlBtn");
+const elShuffleBtn=$("shuffleBtn"),elRepeatBtn=$("repeatBtn"),elRepeatIcon=$("repeatIcon"),elDlBtn=$("dlBtn"),elFavBtn=$("favBtn"),elFavIcon=$("favIcon");
 const elCurTime=$("curTime"),elDurTime=$("durTime"),elSeekBar=$("seekBar"),elSeekFill=$("seekFill");
 const elVolBar=$("volBar"),elVolFill=$("volFill");
 const elTrTitle=$("trTitle"),elTrSub=$("trSub"),elTrCover=$("trCover"),elTrInitial=$("trInitial");
@@ -998,23 +1017,32 @@ function unp(id,autoplay){
   state.currentIndex=id;const t=TRACKS[id];audio.src=t.src;audio.currentTime=0;
   if(autoplay)audio.play().catch(()=>{});vis();svf();
 }
+
+function shufPick(ids){
+  if(!ids.length)return null;
+  if(ids.length===1)return ids[0];
+  let pick;
+  do{pick=ids[Math.floor(Math.random()*ids.length)];}while(pick===state.currentIndex);
+  return pick;
+}
 function nxt(){
   if(state.playbackSource==="favorites"){
     if(!state.favorites.length)return null;
+    if(state.shuffle)return shufPick(state.favorites);
     const pos=state.favorites.indexOf(state.currentIndex);
     if(pos===-1)return state.favorites[0];
     if(pos+1<state.favorites.length)return state.favorites[pos+1];
     return state.repeat==="all"?state.favorites[0]:null;
   }
   const list=cidx();if(!list.length)return null;
-  if(state.shuffle){if(list.length===1)return list[0].id;let pick;do{pick=list[Math.floor(Math.random()*list.length)].id;}while(pick===state.currentIndex&&list.length>1);return pick;}
+  if(state.shuffle){return shufPick(list.map(t=>t.id));}
   const ids=list.map(t=>t.id);const pos=ids.indexOf(state.currentIndex);
   if(pos===-1)return ids[0];if(pos+1<ids.length)return ids[pos+1];return state.repeat==="all"?ids[0]:null;
 }
 function mbr(){
-  // same deal -- favorites run top-to-bottom, shuffle doesn't touch them
   if(state.playbackSource==="favorites"){
     if(!state.favorites.length)return null;
+    if(state.shuffle)return shufPick(state.favorites);
     const pos=state.favorites.indexOf(state.currentIndex);
     if(pos===-1)return state.favorites[0];
     if(pos-1>=0)return state.favorites[pos-1];
@@ -1028,10 +1056,11 @@ function mbr(){
 function pred(){
   if(state.currentIndex==null){
     if(state.playbackSource==="favorites"&&state.favorites.length){
-      unp(state.favorites[0],true);
+      unp(state.shuffle?shufPick(state.favorites):state.favorites[0],true);
       return;
     }
-    const list=cidx();const start=state.shuffle&&list.length?list[Math.floor(Math.random()*list.length)].id:(list.length?list[0].id:null);
+    const list=cidx();
+    const start=state.shuffle&&list.length?shufPick(list.map(t=>t.id)):(list.length?list[0].id:null);
     if(start!=null)unp(start,true);return;
   }
   if(audio.paused)audio.play().catch(()=>{});else audio.pause();
@@ -1140,54 +1169,59 @@ function showTab(tabName){
   }
   tgl();
 }
-(function(){
-  elbugBtn.addEventListener("click",async()=>{
-    const msg=(elBugText.value||"").trim();
-    if(!msg){
-      elBugStatus.style.color="#ff0000";
-      elBugStatus.textContent="Please describe the bug first.";
-      return;
-    }
-    elbugBtn.disabled=true;
-    elBugStatus.style.color="#000";
-    elBugStatus.textContent="Sending...";
-    let errMsg="Failed to send. Try again.";
-    try{
-      const r=await fetch("https://bug-reporter.evankeeran5.workers.dev/",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          message:msg,
-          page:window.location.href
-        })
-      });
-      if(r.ok){
-        const res=await r.json();
-        if(res&&res.success===true){
-          elBugText.value="";
-          elBugStatus.style.color="#008000";
-          elBugStatus.textContent="Sent! Thanks for the report.";
-          elbugBtn.disabled=false;
-          return;
-        }else if(res&&(res.error||res.message)){
-          errMsg=res.error||res.message;
-        }
-      }else{
-        try{
-          const res=await r.json();
-          if(res&&(res.error||res.message))errMsg=res.error||res.message;
-        }catch(e){}
+
+async function submitReport(type,textEl,btnEl,statusEl){
+  const msg=(textEl.value||"").trim();
+  const what=type==="feature"?"feature":"bug";
+  if(!msg){
+    statusEl.style.color="#ff0000";
+    statusEl.textContent="Please describe the "+what+" first.";
+    return;
+  }
+  btnEl.disabled=true;
+  statusEl.style.color="#000";
+  statusEl.textContent="Sending...";
+  let errMsg="Failed to send. Try again.";
+  try{
+    const r=await fetch("https://bug-reporter.evankeeran5.workers.dev/",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        type:type,
+        message:msg,
+        page:window.location.href
+      })
+    });
+    if(r.ok){
+      const res=await r.json();
+      if(res&&res.success===true){
+        textEl.value="";
+        statusEl.style.color="#008000";
+        statusEl.textContent="Sent! Thanks.";
+        btnEl.disabled=false;
+        return;
+      }else if(res&&(res.error||res.message)){
+        errMsg=res.error||res.message;
       }
-      elBugStatus.style.color="#ff0000";
-      elBugStatus.textContent=errMsg;
-      elbugBtn.disabled=false;
-    }catch(err){
-      elBugStatus.style.color="#ff0000";
-      elBugStatus.textContent="Network error. Try again.";
-      elbugBtn.disabled=false;
+    }else{
+      try{
+        const res=await r.json();
+        if(res&&(res.error||res.message))errMsg=res.error||res.message;
+      }catch(e){}
     }
-  });
-})();
+    statusEl.style.color="#ff0000";
+    statusEl.textContent=errMsg;
+    btnEl.disabled=false;
+  }catch(err){
+    statusEl.style.color="#ff0000";
+    statusEl.textContent="Network error. Try again.";
+    btnEl.disabled=false;
+  }
+}
+elbugBtn.addEventListener("click",()=>submitReport("bug",elBugText,elbugBtn,elBugStatus));
+if(elFeatBtn&&elFeatText&&elFeatStatus){
+  elFeatBtn.addEventListener("click",()=>submitReport("feature",elFeatText,elFeatBtn,elFeatStatus));
+}
 function vis(){
   rpl();
   const t=prs();
@@ -1199,6 +1233,7 @@ function vis(){
     elTrInitial.textContent="V";elTrCover.querySelectorAll("img").forEach(n=>n.remove());
     elTrCover.querySelector(".ic").style.display="";elTrCover.querySelector(".ic").textContent="V";
     elDlBtn.style.display="none";elDlBtn.href="#";elDlBtn.removeAttribute("download");
+    if(elFavBtn){elFavBtn.disabled=true;elFavBtn.classList.remove("active");elFavBtn.setAttribute("aria-pressed","false");elFavBtn.title="Favorite current song (no track playing)";if(elFavIcon)elFavIcon.innerHTML=STAR_OUTLINE;}
 
     elFsTitle.textContent="PICK A SONG!";elFsSubline.innerHTML='<span class="chip navy">PLAY A SONG</span>';
     elFsInitial.textContent="V";elFsCat.textContent="";elFsYr.textContent="";
@@ -1223,6 +1258,15 @@ function vis(){
   else{ic.style.display="";ic.textContent=rlib(t.title);}
   const dlUrl="https://github.com/2kjerk/2kjerk.github.io/raw/refs/heads/master/"+t.src;
   elDlBtn.href=dlUrl;elDlBtn.download=t.filename;elDlBtn.style.display="";
+
+  if(elFavBtn){
+    const inFav=state.favorites.includes(t.id);
+    elFavBtn.disabled=false;
+    elFavBtn.classList.toggle("active",inFav);
+    elFavBtn.setAttribute("aria-pressed",inFav?"true":"false");
+    elFavBtn.title=inFav?"Remove from favorites":"Add to favorites";
+    if(elFavIcon)elFavIcon.innerHTML=inFav?STAR_FILLED:STAR_OUTLINE;
+  }
 
   elFsTitle.textContent=t.title;
   let fsSub='<span class="chip navy">'+esc(t.projectName)+'</span>';
@@ -1273,14 +1317,18 @@ audio.addEventListener("ended",()=>{
   const n=nxt();if(n!=null)unp(n,true);
   else{state.isPlaying=false;elPlayIcon.innerHTML=ICON_PLAY;elFsPlayIcon.innerHTML=ICON_PLAY_LG;svf();}
 });
-
+const _badTracks=new Set();
 audio.addEventListener("error",()=>{
   if(state.currentIndex==null)return;
   const dead=TRACKS[state.currentIndex];
+  _badTracks.add(state.currentIndex);
   console.error("[vault] playback error on track "+(dead?dead.cat:"?")+" -> "+(dead?dead.path:"(unknown)"),audio.error);
-  const n=nxt();
+  let n=nxt(),tries=0;
+  while(n!=null&&_badTracks.has(n)&&tries<TRACKS.length){n=nxt();tries++;}
   if(n!=null&&n!==state.currentIndex){
     setTimeout(()=>unp(n,state.isPlaying||true),120);
+  }else{
+    state.isPlaying=false;elPlayIcon.innerHTML=ICON_PLAY;elFsPlayIcon.innerHTML=ICON_PLAY_LG;svf();
   }
 });
 audio.addEventListener("volumechange",()=>{
@@ -1306,7 +1354,7 @@ function ply(el,onChange,getFrac,hkeys){
 ply(elSeekBar,f=>{if(isFinite(audio.duration)&&audio.duration>0)audio.currentTime=f*audio.duration;},()=>audio.duration?audio.currentTime/audio.duration:0,true);
 ply(elFsSeekBar,f=>{if(isFinite(audio.duration)&&audio.duration>0)audio.currentTime=f*audio.duration;},()=>audio.duration?audio.currentTime/audio.duration:0,true);
 ply(elVolBar,f=>{state.volume=f;state.muted=f===0;audio.volume=f;audio.muted=state.muted;tgl();},()=>state.muted?0:state.volume,true);
-function aply(){elMuteIcon.innerHTML=(state.muted||state.volume===0)?SVG_VOL_OFF:SVG_VOL_ON;}
+function aply(){}
 function res(pct){elSeekFill.style.width=pct+"%";}
 function szcv(pct){elVolFill.style.width=pct+"%";}
 
@@ -1346,6 +1394,13 @@ elBtnPlayPl.addEventListener("click",()=>{
     unp(firstId,true);
   }
 });
+elBtnShufPl.addEventListener("click",()=>{
+  if(!state.favorites.length)return;
+  state.shuffle=true;state.playbackSource="favorites";
+  elShuffleBtn.setAttribute("aria-pressed","true");tgl();
+  const pick=shufPick(state.favorites);
+  if(pick!=null)unp(pick,true);
+});
 elBtnClearPl.addEventListener("click",()=>{
   state.favorites=[];
   state.playbackSource="library";
@@ -1382,10 +1437,9 @@ elRepeatBtn.addEventListener("click",()=>{
   elRepeatIcon.innerHTML=state.repeat==="one"?SVG_REPEAT_ONE:SVG_REPEAT;
   elRepeatBtn.title="Repeat: "+state.repeat;tgl();
 });
-elMuteBtn.addEventListener("click",()=>{
-  state.muted=!state.muted;audio.muted=state.muted;
-  if(!state.muted&&state.volume===0)state.volume=.8;
-  audio.volume=state.muted?0:state.volume;szcv((state.muted?0:state.volume)*100);
+elFavBtn.addEventListener("click",()=>{
+  if(state.currentIndex==null)return;
+  toggleFav(state.currentIndex);
 });
 elSearch.addEventListener("input",e=>{state.query=e.target.value;svf();});
 document.addEventListener("keydown",ev=>{
@@ -1405,7 +1459,7 @@ document.addEventListener("keydown",ev=>{
     case "ArrowLeft":if(ev.shiftKey){const p=mbr();if(p!=null)unp(p,true);}else audio.currentTime=Math.max(0,audio.currentTime-10);break;
     case "ArrowUp":ev.preventDefault();state.volume=Math.min(1,state.volume+.05);state.muted=false;audio.muted=false;audio.volume=state.volume;szcv(state.volume*100);break;
     case "ArrowDown":ev.preventDefault();state.volume=Math.max(0,state.volume-.05);audio.volume=state.volume;szcv(state.volume*100);break;
-    case "m":case "M":elMuteBtn.click();break;case "s":case "S":elShuffleBtn.click();break;
+    case "m":case "M":break;case "s":case "S":elShuffleBtn.click();break;
     case "r":case "R":elRepeatBtn.click();break;case "n":case "N":elNextBtn.click();break;case "p":case "P":elPrevBtn.click();break;
     case "f":case "F":
       if(!typing){
@@ -1452,12 +1506,10 @@ function tgl(){
       localStorage.setItem("vault:lastT",String(Math.floor(audio.currentTime||0)));
     }
   }catch(e){
-
     console.warn("[vault] couldn't save state to localStorage:",e);
   }
   window.dispatchEvent(new CustomEvent("vaultStateChanged"));
 }
-
 function per(){
   try{
     const v=parseFloat(localStorage.getItem("vault:vol"));
@@ -1470,6 +1522,7 @@ function per(){
     if(favs){
       try{state.favorites=JSON.parse(favs);}catch(e){console.warn("[vault] favorites were corrupt, starting fresh",e);state.favorites=[];}
     }else{
+
       const pls=localStorage.getItem("vault:playlists");
       if(pls){
         try{const oldPls=JSON.parse(pls);if(Array.isArray(oldPls)&&oldPls.length>0&&oldPls[0].tracks){state.favorites=oldPls[0].tracks;}}catch(e){}
@@ -1484,6 +1537,7 @@ function per(){
     if(src&&src!=="playlist")state.playbackSource=src;else if(src==="playlist")state.playbackSource="favorites";
     const at=localStorage.getItem("vault:activeTab");
     if(at)state.activeTab=at;
+
     const id=parseInt(localStorage.getItem("vault:lastId"),10);
     const t=parseInt(localStorage.getItem("vault:lastT"),10);
     if(!isNaN(id)&&TRACKS[id]){
@@ -1498,6 +1552,7 @@ function per(){
   }
 }
 audio.addEventListener("timeupdate",tgl);audio.addEventListener("pause",tgl);
+
 function umi(){
   let i=0;const POOL=3;
   function spln(){
@@ -1530,8 +1585,8 @@ if(document.readyState!=="loading")rfl();
 
 const ANNOUNCEMENT = {
   enabled: false,                              
-  id: "5556",                     
-  windowHours: 0,                           
+  id: "55561",                     
+  windowHours: 2,                           
   startAt: "2026-06-23T20:27:00",             
   title: "update",
   body: [
